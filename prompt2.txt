@@ -1,0 +1,283 @@
+# 🎓 PROMPT PARA CONTINUAR - Mural IFSP
+
+## 📋 CONTEXTO DO PROJETO
+
+Estou desenvolvendo um **Mural sobre Violência Escolar do IFSP Bragança Paulista**. É uma plataforma estilo Twitter onde estudantes podem postar denúncias usando vídeos, fotos, GIFs, PDFs, áudios e textos (TODOS com descrição obrigatória).
+
+### ✅ FASE 1 COMPLETA (já feita)
+- Estrutura do projeto React + Vite configurada
+- Banco de dados Supabase estruturado (todas as tabelas criadas)
+- Cliente Supabase configurado
+- Estilos globais com tema escuro + verde IFSP (#0B6623)
+- 30+ animações CSS prontas (glassmorphism, hover effects, etc)
+- Sistema de rotas básico
+- Todas as constantes e configurações
+
+### 📁 Estrutura de Arquivos Criados
+```
+mural-ifsp/
+├── package.json
+├── vite.config.js
+├── vercel.json
+├── .env.example
+├── .gitignore
+├── index.html
+├── database-schema.sql (executado no Supabase)
+└── src/
+    ├── main.jsx
+    ├── App.jsx
+    ├── services/
+    │   └── supabase.js (configurado)
+    ├── utils/
+    │   └── constants.js (completo)
+    └── styles/
+        ├── global.css (completo)
+        └── animations.css (completo)
+```
+
+---
+
+## 🎯 PRÓXIMA FASE: SISTEMA DE AUTENTICAÇÃO
+
+Preciso que você crie a **Fase 2: Sistema de Autenticação** com os seguintes arquivos:
+
+### Arquivos Necessários:
+
+#### 1. **src/services/auth.js**
+- Funções de login (estudante e visitante)
+- Registro de estudante (com BP - prontuário no formato BRG12345)
+- Registro de visitante (com código de verificação de 4 dígitos enviado por email)
+- Verificação de email
+- Logout
+- Recuperação de senha
+- Validação de sessão
+
+#### 2. **src/utils/validators.js**
+- Validar email
+- Validar BP (formato: BRG + 5 dígitos, ex: BRG12345)
+- Validar senha (mínimo 8 caracteres)
+- Validar nome de usuário (3-30 caracteres, apenas letras, números e underscore)
+- Validar código de verificação (4 dígitos)
+
+#### 3. **src/hooks/useAuth.js**
+- Hook customizado para gerenciar autenticação
+- Estado do usuário logado
+- Funções de login/logout
+- Verificar se é admin
+- Persistir sessão
+
+#### 4. **src/components/auth/LoginForm.jsx**
+- Formulário de login
+- Campos: email e senha
+- Opção "Esqueci minha senha"
+- Link para cadastro
+- Animações e validações
+
+#### 5. **src/components/auth/RegisterForm.jsx**
+- Formulário com DUAS ABAS:
+  - **Aba 1:** Estudante (pede BP, nome real, email, nome de usuário, senha)
+  - **Aba 2:** Visitante (pede apenas email, nome de usuário, senha)
+- Validações em tempo real
+- Envio de código para visitantes
+
+#### 6. **src/components/auth/VerificationCode.jsx**
+- Input para código de 4 dígitos
+- Timer de expiração (15 minutos)
+- Opção de reenviar código
+- Animações
+
+#### 7. **src/pages/Login.jsx**
+- Página completa de login
+- Logo IFSP
+- LoginForm
+- Design com glassmorphism
+
+#### 8. **src/pages/Register.jsx**
+- Página completa de cadastro
+- Logo IFSP
+- RegisterForm
+- Design com glassmorphism
+
+---
+
+## ⚙️ REGRAS IMPORTANTES
+
+### Autenticação
+- **Estudante:** Precisa de BP (prontuário), nome real, email institucional (opcional validar @ifsp.edu.br), nome de usuário e senha
+- **Visitante:** Precisa de email, nome de usuário e senha + verificação por código de 4 dígitos
+- Código expira em 15 minutos
+- Sessão expira em 24 horas
+
+### Banco de Dados (Tabela `usuarios`)
+```sql
+usuarios (
+  id UUID,
+  tipo_usuario VARCHAR ('estudante' | 'visitante'),
+  nome_usuario VARCHAR UNIQUE,
+  email VARCHAR UNIQUE,
+  senha_hash VARCHAR,
+  nome_real VARCHAR (apenas estudantes),
+  bp VARCHAR (apenas estudantes),
+  email_verificado BOOLEAN,
+  codigo_verificacao VARCHAR(4),
+  codigo_expiracao TIMESTAMP,
+  banido BOOLEAN,
+  foto_perfil_url TEXT
+)
+```
+
+### Design
+- **Cores:** Verde IFSP (#0B6623, #0E8B2F, #054A1A) predominante
+- **Fundo:** Tema escuro (#0F0F0F, #1A1A1A)
+- **Efeitos:** Glassmorphism, animações suaves, hover effects
+- **NÃO USE TAILWIND CSS** - apenas CSS puro/modules ou styled-components
+- Use as classes do global.css já criado (.btn, .card, .input, etc)
+
+### Tecnologias
+- React 18
+- Supabase Auth
+- React Router DOM
+- Framer Motion (para animações avançadas se necessário)
+- React Hot Toast (notificações)
+- Zustand (gerenciamento de estado)
+
+---
+
+## 📝 EXEMPLO DE ESTRUTURA
+
+### Login Flow:
+1. Usuário acessa /login
+2. Digita email e senha
+3. Sistema valida credenciais no Supabase
+4. Se correto → redireciona para /
+5. Se incorreto → mostra erro com animação shake
+
+### Registro Estudante:
+1. Escolhe aba "Estudante"
+2. Preenche: BP, nome real, email, nome de usuário, senha
+3. Sistema valida BP (formato BRG12345)
+4. Cria conta no Supabase
+5. Envia email de boas-vindas
+6. Redireciona para login
+
+### Registro Visitante:
+1. Escolhe aba "Visitante"
+2. Preenche: email, nome de usuário, senha
+3. Sistema envia código de 4 dígitos por email
+4. Mostra tela de verificação
+5. Usuário digita código
+6. Se correto → conta ativada
+7. Redireciona para login
+
+---
+
+## 🔐 SEGURANÇA
+
+- Sempre use bcrypt ou Supabase Auth para senhas
+- Valide TODOS os inputs no frontend E backend
+- Use Row Level Security (RLS) do Supabase
+- Não exponha informações sensíveis
+- Sanitize dados de usuários
+- Implemente rate limiting para login
+
+---
+
+## 🎨 COMPONENTES REUTILIZÁVEIS JÁ PRONTOS
+
+Use as classes CSS já criadas:
+```html
+<!-- Botões -->
+<button className="btn btn-primary">Entrar</button>
+
+<!-- Inputs -->
+<input className="input" placeholder="Email" />
+
+<!-- Cards -->
+<div className="card glass">Conteúdo</div>
+
+<!-- Animações -->
+<div className="fade-in-up">Aparecer</div>
+<div className="shake">Erro</div>
+```
+
+---
+
+## 📦 DEPENDÊNCIAS (já instaladas)
+
+```json
+{
+  "@supabase/supabase-js": "^2.39.0",
+  "react": "^18.2.0",
+  "react-router-dom": "^6.21.0",
+  "framer-motion": "^10.18.0",
+  "react-hot-toast": "^2.4.1",
+  "zustand": "^4.4.7"
+}
+```
+
+---
+
+## 🎯 OBJETIVO FINAL DA FASE 2
+
+Ao final, devo ter:
+- ✅ Sistema de login funcionando
+- ✅ Cadastro de estudantes com BP
+- ✅ Cadastro de visitantes com código
+- ✅ Verificação de email
+- ✅ Sessão persistente
+- ✅ Validações completas
+- ✅ UI bonita com animações
+- ✅ Integração total com Supabase
+
+---
+
+## 🚀 COMO PROCEDER
+
+1. **Crie TODOS os arquivos listados** (auth.js, validators.js, useAuth.js, componentes, páginas)
+2. **Separe cada arquivo** com comentários indicando o caminho
+3. **Use as constantes** de `src/utils/constants.js`
+4. **Siga o design** do tema verde IFSP + escuro
+5. **Implemente validações robustas**
+6. **Adicione animações** nos formulários
+7. **Trate TODOS os erros** com mensagens amigáveis
+
+---
+
+## 💡 DICAS
+
+- Use `async/await` para chamadas Supabase
+- Implemente loading states
+- Mostre feedback visual em todas as ações
+- Use React Hot Toast para notificações
+- Valide formulários em tempo real
+- Adicione máscaras de input quando necessário (BP, telefone, etc)
+
+---
+
+## ⚠️ IMPORTANTE
+
+- **NÃO** use localStorage diretamente (use Supabase Auth)
+- **NÃO** armazene senhas em plain text
+- **NÃO** use Tailwind CSS
+- **SIM** use as classes do global.css
+- **SIM** adicione comentários no código
+- **SIM** trate todos os edge cases
+
+---
+
+## 🎨 REFERÊNCIAS VISUAIS
+
+Logo IFSP: https://bra.ifsp.edu.br/images/LogoIFSP/logoifspbra2.png
+
+Cores:
+- Verde principal: #0B6623
+- Verde claro: #0E8B2F
+- Verde escuro: #054A1A
+- Fundo: #0F0F0F
+- Cards: #1A1A1A
+
+---
+
+**PODE COMEÇAR A FASE 2! 🚀**
+
+Crie todos os arquivos necessários para o sistema de autenticação completo. Lembre-se: código limpo, bem comentado e organizado!
