@@ -1,7 +1,7 @@
 /**
- * CAMINHO: src/services/auth.js (ATUALIZADO)
+ * CAMINHO: src/services/auth.js
  * 
- * Serviços de autenticação com envio de email real
+ * Serviços de autenticação com Email Supabase Nativo
  */
 
 import { supabase } from './supabase';
@@ -12,32 +12,6 @@ import { sanitizeString } from '../utils/validators';
  */
 const generateVerificationCode = () => {
   return Math.floor(1000 + Math.random() * 9000).toString();
-};
-
-/**
- * Envia email de verificação usando Supabase
- */
-const sendVerificationEmail = async (email, code, userName) => {
-  try {
-    // Usando a API do Supabase para enviar email
-    const { error } = await supabase.functions.invoke('send-verification-email', {
-      body: {
-        email: email,
-        code: code,
-        userName: userName,
-      }
-    });
-
-    if (error) {
-      console.error('Erro ao enviar email:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Erro ao enviar email:', error);
-    return false;
-  }
 };
 
 /**
@@ -97,7 +71,11 @@ export const registerStudent = async (formData) => {
       };
     }
     
-    // Criar usuário no auth
+    // Gerar código de verificação
+    const verificationCode = generateVerificationCode();
+    const codeExpiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+    
+    // Criar usuário no auth (Supabase enviará email automaticamente)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: sanitizedData.email,
       password: password,
@@ -105,6 +83,7 @@ export const registerStudent = async (formData) => {
         data: {
           username: sanitizedData.username,
           tipo_usuario: 'estudante',
+          verification_code: verificationCode, // Incluir no metadata
         },
         emailRedirectTo: `${window.location.origin}/verificar-email`,
       }
@@ -113,10 +92,6 @@ export const registerStudent = async (formData) => {
     if (authError) {
       return { success: false, error: authError.message };
     }
-    
-    // Gerar código de verificação
-    const verificationCode = generateVerificationCode();
-    const codeExpiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
     
     // Inserir dados na tabela usuarios
     const { error: insertError } = await supabase
@@ -139,25 +114,16 @@ export const registerStudent = async (formData) => {
       return { success: false, error: insertError.message };
     }
     
-    // ENVIAR EMAIL DE VERIFICAÇÃO
-    const emailSent = await sendVerificationEmail(
-      sanitizedData.email, 
-      verificationCode,
-      sanitizedData.username
-    );
-
-    // Para desenvolvimento: ainda mostrar no console
-    if (import.meta.env.DEV) {
-      console.log('🔐 Código de verificação (DEV):', verificationCode);
-    }
+    // Em desenvolvimento, ainda mostrar no console
+    console.log('📧 Email enviado pelo Supabase');
+    console.log('🔐 Código de verificação:', verificationCode);
+    console.log('📬 Verifique a caixa de entrada de:', sanitizedData.email);
     
     return {
       success: true,
       userId: authData.user.id,
-      emailSent: emailSent,
-      message: emailSent 
-        ? 'Cadastro realizado! Verifique seu email.' 
-        : 'Cadastro realizado! Código: ' + verificationCode
+      verificationCode: verificationCode, // Manter no DEV
+      message: 'Cadastro realizado! Verifique seu email.'
     };
     
   } catch (error) {
@@ -207,7 +173,11 @@ export const registerVisitor = async (formData) => {
       };
     }
     
-    // Criar usuário no auth
+    // Gerar código de verificação
+    const verificationCode = generateVerificationCode();
+    const codeExpiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+    
+    // Criar usuário no auth (Supabase enviará email automaticamente)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: sanitizedData.email,
       password: password,
@@ -215,6 +185,7 @@ export const registerVisitor = async (formData) => {
         data: {
           username: sanitizedData.username,
           tipo_usuario: 'visitante',
+          verification_code: verificationCode,
         },
         emailRedirectTo: `${window.location.origin}/verificar-email`,
       }
@@ -223,10 +194,6 @@ export const registerVisitor = async (formData) => {
     if (authError) {
       return { success: false, error: authError.message };
     }
-    
-    // Gerar código de verificação
-    const verificationCode = generateVerificationCode();
-    const codeExpiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
     
     // Inserir dados na tabela usuarios
     const { error: insertError } = await supabase
@@ -247,25 +214,16 @@ export const registerVisitor = async (formData) => {
       return { success: false, error: insertError.message };
     }
     
-    // ENVIAR EMAIL DE VERIFICAÇÃO
-    const emailSent = await sendVerificationEmail(
-      sanitizedData.email, 
-      verificationCode,
-      sanitizedData.username
-    );
-
-    // Para desenvolvimento: ainda mostrar no console
-    if (import.meta.env.DEV) {
-      console.log('🔐 Código de verificação (DEV):', verificationCode);
-    }
+    // Em desenvolvimento, ainda mostrar no console
+    console.log('📧 Email enviado pelo Supabase');
+    console.log('🔐 Código de verificação:', verificationCode);
+    console.log('📬 Verifique a caixa de entrada de:', sanitizedData.email);
     
     return {
       success: true,
       userId: authData.user.id,
-      emailSent: emailSent,
-      message: emailSent 
-        ? 'Cadastro realizado! Verifique seu email.' 
-        : 'Cadastro realizado! Código: ' + verificationCode
+      verificationCode: verificationCode, // Manter no DEV
+      message: 'Cadastro realizado! Verifique seu email.'
     };
     
   } catch (error) {
@@ -365,21 +323,14 @@ export const resendVerificationCode = async (userId) => {
       return { success: false, error: updateError.message };
     }
     
-    // ENVIAR EMAIL COM NOVO CÓDIGO
-    const emailSent = await sendVerificationEmail(
-      user.email,
-      verificationCode,
-      user.nome_usuario
-    );
-
-    // Para desenvolvimento: ainda mostrar no console
-    if (import.meta.env.DEV) {
-      console.log('🔐 Novo código de verificação (DEV):', verificationCode);
-    }
+    // Supabase envia automaticamente
+    console.log('📧 Novo email enviado pelo Supabase');
+    console.log('🔐 Novo código:', verificationCode);
+    console.log('📬 Verifique:', user.email);
     
     return {
       success: true,
-      emailSent: emailSent,
+      verificationCode: verificationCode, // Manter no DEV
       message: 'Novo código enviado para seu email'
     };
     

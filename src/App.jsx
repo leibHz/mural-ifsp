@@ -1,16 +1,11 @@
 /**
- * CAMINHO: src/App.jsx
+ * CAMINHO: src/App.jsx (OTIMIZADO)
  * 
  * Componente principal da aplicação
- * Configura o roteamento e providers
  */
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
-
-// Services
-import { checkConnection } from './services/supabase';
 
 // Hooks
 import { useAuth, useAuthListener } from './hooks/useAuth';
@@ -21,32 +16,14 @@ import { ROUTES } from './utils/constants';
 // Páginas
 import Login from './pages/Login';
 import Register from './pages/Register';
-// import Home from './pages/Home';
-// import Profile from './pages/Profile';
-// import Admin from './pages/Admin';
 
 function App() {
-  const { initialize, loading } = useAuth();
+  const { loading } = useAuth();
 
-  // Verificar conexão com Supabase ao iniciar
-  useEffect(() => {
-    const checkSupabaseConnection = async () => {
-      const result = await checkConnection();
-      if (result.success) {
-        console.log('✅', result.message);
-      } else {
-        console.error('❌ Erro de conexão:', result.message);
-      }
-    };
-    
-    checkSupabaseConnection();
-    initialize();
-  }, [initialize]);
-
-  // Configurar listener de autenticação
+  // Configurar listener (executa apenas uma vez)
   useAuthListener();
 
-  // Mostrar loading enquanto verifica autenticação
+  // Loading simplificado
   if (loading) {
     return (
       <div 
@@ -54,14 +31,9 @@ function App() {
         style={{ 
           minHeight: '100vh', 
           background: 'var(--bg-dark)',
-          flexDirection: 'column',
-          gap: '1rem',
         }}
       >
-        <div className="spinner" style={{ width: '60px', height: '60px' }} />
-        <p style={{ color: 'var(--color-primary)', fontWeight: '600' }}>
-          Carregando...
-        </p>
+        <div className="spinner" style={{ width: '50px', height: '50px' }} />
       </div>
     );
   }
@@ -71,7 +43,6 @@ function App() {
       {/* Toast Notifications */}
       <Toaster
         position="top-right"
-        reverseOrder={false}
         toastOptions={{
           duration: 3000,
           style: {
@@ -88,17 +59,11 @@ function App() {
               primary: '#10B981',
               secondary: '#F5F5F5',
             },
-            style: {
-              border: '1px solid #10B981',
-            },
           },
           error: {
             iconTheme: {
               primary: '#DC2626',
               secondary: '#F5F5F5',
-            },
-            style: {
-              border: '1px solid #DC2626',
             },
           },
         }}
@@ -110,7 +75,7 @@ function App() {
         <Route path={ROUTES.LOGIN} element={<Login />} />
         <Route path={ROUTES.REGISTER} element={<Register />} />
 
-        {/* Rota temporária - Home */}
+        {/* Rota Home */}
         <Route
           path={ROUTES.HOME}
           element={
@@ -126,16 +91,13 @@ function App() {
                   Sua voz contra a violência escolar
                 </p>
                 <div style={{ marginTop: '3rem', padding: '2rem', background: '#1A1A1A', borderRadius: '12px', maxWidth: '700px' }}>
-                  <h2 style={{ color: '#10B981', marginBottom: '1rem' }}>✅ Fase 2: Sistema de Autenticação - COMPLETA!</h2>
+                  <h2 style={{ color: '#10B981', marginBottom: '1rem' }}>✅ Sistema de Autenticação Completo!</h2>
                   <p style={{ color: '#A3A3A3', lineHeight: '1.8' }}>
-                    Agora você pode:<br /><br />
-                    <strong style={{ color: '#0B6623' }}>✓ Fazer login</strong><br />
-                    <strong style={{ color: '#0B6623' }}>✓ Cadastrar estudantes (com BP)</strong><br />
-                    <strong style={{ color: '#0B6623' }}>✓ Cadastrar visitantes</strong><br />
-                    <strong style={{ color: '#0B6623' }}>✓ Verificar email com código de 4 dígitos</strong><br />
-                    <strong style={{ color: '#0B6623' }}>✓ Gerenciar sessões</strong>
+                    <strong style={{ color: '#0B6623' }}>✓ Login e cadastro funcionando</strong><br />
+                    <strong style={{ color: '#0B6623' }}>✓ Verificação de email</strong><br />
+                    <strong style={{ color: '#0B6623' }}>✓ Performance otimizada</strong>
                   </p>
-                  <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                  <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                     <a 
                       href={ROUTES.LOGIN}
                       className="btn btn-primary"
@@ -155,12 +117,7 @@ function App() {
           }
         />
 
-        {/* Rotas comentadas - serão ativadas nas próximas fases */}
-        {/* <Route path={ROUTES.HOME} element={<Home />} /> */}
-        {/* <Route path={ROUTES.PROFILE} element={<Profile />} /> */}
-        {/* <Route path={ROUTES.ADMIN} element={<Admin />} /> */}
-
-        {/* Rota 404 - Redirecionar para home */}
+        {/* Rota 404 */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
       </Routes>
     </Router>

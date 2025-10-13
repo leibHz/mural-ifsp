@@ -1,26 +1,16 @@
 /**
- * CAMINHO: src/pages/Login.jsx
+ * CAMINHO: src/pages/Login.jsx (OTIMIZADO)
  * 
  * Página de login
  */
 
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import LoginForm from '../components/auth/LoginForm';
-import { useAuth } from '../hooks/useAuth';
 import { ROUTES, IFSP_INFO } from '../utils/constants';
 
 function Login() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-
-  // Redirecionar se já estiver autenticado
-  useEffect(() => {
-    if (isAuthenticated()) {
-      navigate(ROUTES.HOME);
-    }
-  }, [isAuthenticated, navigate]);
 
   return (
     <div 
@@ -46,20 +36,6 @@ function Login() {
           background: 'radial-gradient(circle, rgba(11, 102, 35, 0.1) 0%, transparent 70%)',
           pointerEvents: 'none',
         }}
-        className="rotate-slow"
-      />
-      
-      <div 
-        style={{
-          position: 'absolute',
-          bottom: '-50%',
-          left: '-50%',
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(circle, rgba(11, 102, 35, 0.05) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }}
-        className="rotate-slow"
       />
 
       <div style={{ width: '100%', maxWidth: '1200px', position: 'relative', zIndex: 1 }}>
@@ -99,7 +75,6 @@ function Login() {
                   marginBottom: '0.5rem',
                   fontWeight: '900',
                 }}
-                className="gradient-animated"
               >
                 Mural IFSP
               </h1>

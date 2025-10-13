@@ -1,14 +1,13 @@
 /**
  * CAMINHO: src/hooks/useAuth.js
  * 
- * Hook customizado para gerenciar autenticação
- * Fornece estado e funções de auth para toda a aplicação
+ * Hook customizado para gerenciar autenticação (OTIMIZADO)
  */
 
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase, onAuthStateChange } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { getCurrentUserData, isAdmin } from '../services/auth';
 
 /**
@@ -23,6 +22,7 @@ export const useAuthStore = create(
       loading: true,
       isAdmin: false,
       adminLevel: null,
+      initialized: false,
       
       // Ações
       setUser: (user) => set({ user }),
@@ -30,8 +30,13 @@ export const useAuthStore = create(
       setLoading: (loading) => set({ loading }),
       setAdmin: (isAdmin, adminLevel) => set({ isAdmin, adminLevel }),
       
-      // Inicializar autenticação
+      // Inicializar autenticação (apenas uma vez)
       initialize: async () => {
+        // Evitar múltiplas inicializações
+        if (get().initialized && !get().loading) {
+          return;
+        }
+        
         try {
           set({ loading: true });
           
@@ -52,16 +57,32 @@ export const useAuthStore = create(
                 isAdmin: adminCheck.isAdmin,
                 adminLevel: adminCheck.level,
                 loading: false,
+                initialized: true,
               });
             } else {
-              set({ user: null, session: null, loading: false });
+              set({ 
+                user: null, 
+                session: null, 
+                loading: false, 
+                initialized: true 
+              });
             }
           } else {
-            set({ user: null, session: null, loading: false });
+            set({ 
+              user: null, 
+              session: null, 
+              loading: false, 
+              initialized: true 
+            });
           }
         } catch (error) {
           console.error('Erro ao inicializar auth:', error);
-          set({ user: null, session: null, loading: false });
+          set({ 
+            user: null, 
+            session: null, 
+            loading: false, 
+            initialized: true 
+          });
         }
       },
       
@@ -159,33 +180,37 @@ export const useAuth = () => {
 };
 
 /**
- * Hook para configurar listener de mudanças de autenticação
+ * Hook OTIMIZADO para configurar listener de autenticação
  */
 export const useAuthListener = () => {
-  const { initialize } = useAuth();
-  
-  // Configurar listener ao montar
-  React.useEffect(() => {
-    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event);
-      
-      if (event === 'SIGNED_IN') {
-        await initialize();
-      } else if (event === 'SIGNED_OUT') {
-        useAuthStore.getState().logout();
-      } else if (event === 'TOKEN_REFRESHED') {
-        await initialize();
-      }
-    });
+  useEffect(() => {
+    // Inicializar apenas uma vez
+    const store = useAuthStore.getState();
+    if (!store.initialized) {
+      store.initialize();
+    }
     
-    // Inicializar ao montar
-    initialize();
+    // Configurar listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔐 Auth event:', event);
+        
+        if (event === 'SIGNED_IN' && session) {
+          await store.initialize();
+        } else if (event === 'SIGNED_OUT') {
+          store.logout();
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          // Apenas atualizar session, sem reinicializar tudo
+          store.setSession(session);
+        }
+      }
+    );
     
     // Cleanup
     return () => {
       subscription?.unsubscribe();
     };
-  }, [initialize]);
+  }, []); // Array vazio = executa apenas uma vez
 };
 
 export default useAuth;
