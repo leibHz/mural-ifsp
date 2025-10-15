@@ -229,47 +229,7 @@ CREATE TRIGGER trigger_comentarios_timestamp
     FOR EACH ROW
     EXECUTE FUNCTION atualizar_timestamp();
 
--- ============================================
--- POLÍTICAS DE SEGURANÇA (RLS)
--- ============================================
 
--- Habilitar RLS em todas as tabelas
-ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE postagens ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comentarios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE denuncias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE administradores ENABLE ROW LEVEL SECURITY;
-ALTER TABLE logs_admin ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sessoes ENABLE ROW LEVEL SECURITY;
-
--- Políticas básicas (ajustar conforme necessário)
--- Permitir leitura pública de postagens aprovadas
-CREATE POLICY "Postagens públicas são visíveis" ON postagens
-    FOR SELECT
-    USING (aprovado = TRUE AND deletado_em IS NULL);
-
--- Usuários podem ler seus próprios dados
-CREATE POLICY "Usuários podem ler seus dados" ON usuarios
-    FOR SELECT
-    USING (auth.uid()::text = id::text);
-
--- Usuários podem criar postagens
-CREATE POLICY "Estudantes podem criar postagens" ON postagens
-    FOR INSERT
-    WITH CHECK (auth.uid()::text = usuario_id::text);
-
--- Todos podem comentar
-CREATE POLICY "Usuários podem comentar" ON comentarios
-    FOR INSERT
-    WITH CHECK (auth.uid()::text = usuario_id::text);
-
--- ============================================
--- STORAGE BUCKETS (Configurar no Supabase Dashboard)
--- ============================================
--- Criar os seguintes buckets no Supabase Storage:
--- 1. 'fotos-perfil' (público)
--- 2. 'postagens-midia' (público)
--- 3. 'thumbnails' (público)
 
 -- ============================================
 -- FUNÇÕES UTILITÁRIAS

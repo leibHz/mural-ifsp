@@ -1,0 +1,37 @@
+preciso de ajuda pra desenvolver um site, ele é um mural sobre a violencia escolar, uma espécie de twiter só que do IFSP, nele vai poder
+
+enviar um video, foto gif pdf audio texto e etc.. com uma descrição obrigatoria abaixo de cada um
+
+no caso de audio, o audio pode ser transcrito pra pessoas com problemas auditivos
+
+eles são mostrados no mural como miniatura e são expandidos pra um modal ao clicar, no caso de pdf e videos e gifs, els são mostrados como uma miniatura estatica (no caso do pdf só mostra a primeira pagina) , mas são mostrados completamente ao clicar, no caso dos videos e audio, o som obiviamente é reproduzido
+
+o formato de audio compativel é .mp3, .wav e .ogg
+
+o site usará python pro backend e sera feito com html, css, js e claro, python com flask
+o banco de dados será da supabase, ja tenho um schema pronto, no qual te enviei o arquivo .sql, ele ta sem o rls, adicone ele pois é importante para segurança
+
+use variaveis globais para melhhor segurança
+
+o site deve ser de cor predominante verde com um minimo de vermelho num tema escuro, com a logo do ifsp de bragança paulista no site, eu enviei a imagem da logo pra vc anaçlisar tambem
+
+
+ter um painel adiminstrativo pra gerenciar os projetos e apagar aqueles que forem inapropriados, banir usuarios, etc...
+
+so podera publicar quem for do ifsp, pra isso, sera nessesario uma conta que use o BP (prontuario), e uma senha, apartir disso ser a pedido pra criar um nome de usuario, dai tera o perfil com o nome real e o nome de usuario e o BP, ele tambem pedirá pra adicionar uma foto de perfil
+
+pessoas que não são do if podem ter uma conta difernete de quem é do if, ao inves do bp ele pede apenas a senha, nome de usuario e email, será enviado então um codigo de confirmação de 4 digitos e a conta so sera criada apos digitar esse codigo e se ele estiver correto
+
+pessoas com essa "conta diferente" podem apenas comentar nos projetos, essa conta diferente é chamada de visitante
+
+pessoas sem conta podem apenas visualizar os projetos
+ 
+colocar bastnate efeitos e animaçoes pra melhor fluidez do site, como efeito de pagina unica, hover, overlay, glassmorphism, botões animados, flutuante, etc...
+
+sei que é bastnate coisa, mais pode fazer isso pra mim por favor gemini?
+no caso do banco de dados, faça um script pra gerar ele
+sei que é muita coisa pra vc fazer tudo de uma vez, então faça um plano de implementação separados em módulos, isso vai facilitar as coisas
+
+lembre de separar cada coisa em VARIOS ARQUIVOS pra ficar mais ORGANIZADO e me fala o caminho de cada arquivo
+
+pode fazer isso por favor claude?
