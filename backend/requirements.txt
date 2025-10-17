@@ -1,0 +1,83 @@
+# ============================================
+# DEPENDÊNCIAS DO MURAL IFSP
+# ============================================
+
+# ===== FLASK E EXTENSÕES =====
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-Limiter==3.5.0
+Werkzeug==3.0.1
+
+# ===== BANCO DE DADOS =====
+supabase==2.0.3
+postgrest-py==0.13.0
+
+# ===== AUTENTICAÇÃO E SEGURANÇA =====
+PyJWT==2.8.0
+bcrypt==4.1.2
+python-dotenv==1.0.0
+
+# ===== PROCESSAMENTO DE IMAGENS =====
+Pillow==10.1.0
+python-magic==0.4.27
+
+# ===== PROCESSAMENTO DE VÍDEO =====
+moviepy==1.0.3
+opencv-python==4.8.1.78
+
+# ===== PROCESSAMENTO DE ÁUDIO =====
+pydub==0.25.1
+openai-whisper==20231117
+# Alternativa: AssemblyAI
+ffmpeg-python==0.2.0
+
+# ===== PDF =====
+PyPDF2==3.0.1
+pdf2image==1.16.3
+
+# ===== EMAIL =====
+# Built-in do Python, mas precisamos de tipos MIME
+# Nenhuma dependência adicional necessária
+
+# ===== VALIDAÇÃO =====
+email-validator==2.1.0
+python-slugify==8.0.1
+
+# ===== UTILITÁRIOS =====
+python-dateutil==2.8.2
+pytz==2023.3
+requests==2.31.0
+
+# ===== LOGS E MONITORAMENTO =====
+python-json-logger==2.0.7
+
+# ===== PARA TESTES (OPCIONAL) =====
+pytest==7.4.3
+pytest-flask==1.3.0
+pytest-cov==4.1.0
+
+# ===== QUALIDADE DE CÓDIGO (OPCIONAL) =====
+flake8==6.1.0
+black==23.12.0
+pylint==3.0.3
+
+# ===== NOTAS =====
+# 
+# Para instalar:
+# pip install -r requirements.txt
+#
+# Para instalar Whisper com GPU (opcional):
+# pip install openai-whisper[cuda]
+#
+# Dependências do sistema necessárias:
+# - FFmpeg (para processar áudio/vídeo)
+# - libmagic (para python-magic)
+#
+# No Ubuntu/Debian:
+# sudo apt-get install ffmpeg libmagic1
+#
+# No macOS:
+# brew install ffmpeg libmagic
+#
+# No Windows:
+# Baixe FFmpeg de https://ffmpeg.org/download.html

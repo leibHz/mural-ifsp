@@ -1,14 +1,15 @@
 -- ============================================
 -- SCRIPT DE CRIAÇÃO DO BANCO DE DADOS
 -- Mural IFSP - Sistema de Denúncia Escolar
+-- COM ROW LEVEL SECURITY (RLS)
 -- ============================================
 
 -- Extensões necessárias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================
 -- TABELA: usuarios
--- Armazena todos os usuários (estudantes e visitantes)
 -- ============================================
 CREATE TABLE usuarios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -22,7 +23,7 @@ CREATE TABLE usuarios (
     
     -- Dados específicos de estudantes
     nome_real VARCHAR(255),
-    bp VARCHAR(20) UNIQUE, -- Prontuário (apenas para estudantes)
+    bp VARCHAR(20) UNIQUE,
     
     -- Controle
     email_verificado BOOLEAN DEFAULT FALSE,
@@ -46,7 +47,6 @@ CREATE TABLE usuarios (
 
 -- ============================================
 -- TABELA: postagens
--- Armazena todas as postagens do mural
 -- ============================================
 CREATE TABLE postagens (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -56,12 +56,12 @@ CREATE TABLE postagens (
     descricao TEXT NOT NULL,
     tipo_midia VARCHAR(20) NOT NULL CHECK (tipo_midia IN ('imagem', 'video', 'gif', 'pdf', 'audio', 'texto')),
     url_midia TEXT,
-    url_miniatura TEXT, -- Thumbnail gerada
-    transcricao_audio TEXT, -- Para áudios transcritos
+    url_miniatura TEXT,
+    transcricao_audio TEXT,
     
     -- Metadados da mídia
     tamanho_arquivo BIGINT,
-    duracao_midia INTEGER, -- Em segundos (para vídeo/áudio)
+    duracao_midia INTEGER,
     formato_arquivo VARCHAR(10),
     
     -- Moderação
@@ -80,7 +80,6 @@ CREATE TABLE postagens (
 
 -- ============================================
 -- TABELA: comentarios
--- Comentários nas postagens (visitantes e estudantes)
 -- ============================================
 CREATE TABLE comentarios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -102,7 +101,6 @@ CREATE TABLE comentarios (
 
 -- ============================================
 -- TABELA: denuncias
--- Registro de denúncias de conteúdo
 -- ============================================
 CREATE TABLE denuncias (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -128,7 +126,6 @@ CREATE TABLE denuncias (
 
 -- ============================================
 -- TABELA: administradores
--- Controle de privilégios administrativos
 -- ============================================
 CREATE TABLE administradores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -141,7 +138,6 @@ CREATE TABLE administradores (
 
 -- ============================================
 -- TABELA: logs_admin
--- Registro de ações administrativas
 -- ============================================
 CREATE TABLE logs_admin (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -150,8 +146,8 @@ CREATE TABLE logs_admin (
     -- Ação
     tipo_acao VARCHAR(50) NOT NULL,
     descricao TEXT NOT NULL,
-    alvo_id UUID, -- ID do usuário/postagem/comentário afetado
-    dados_anteriores JSONB, -- Estado antes da ação
+    alvo_id UUID,
+    dados_anteriores JSONB,
     
     -- Timestamp
     criado_em TIMESTAMP DEFAULT NOW()
@@ -159,7 +155,6 @@ CREATE TABLE logs_admin (
 
 -- ============================================
 -- TABELA: sessoes
--- Controle de sessões ativas
 -- ============================================
 CREATE TABLE sessoes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -172,38 +167,33 @@ CREATE TABLE sessoes (
 );
 
 -- ============================================
--- ÍNDICES para melhor performance
+-- ÍNDICES
 -- ============================================
 
--- Usuários
 CREATE INDEX idx_usuarios_tipo ON usuarios(tipo_usuario);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_usuarios_bp ON usuarios(bp);
 CREATE INDEX idx_usuarios_banido ON usuarios(banido);
 
--- Postagens
 CREATE INDEX idx_postagens_usuario ON postagens(usuario_id);
 CREATE INDEX idx_postagens_tipo ON postagens(tipo_midia);
 CREATE INDEX idx_postagens_data ON postagens(criado_em DESC);
 CREATE INDEX idx_postagens_aprovado ON postagens(aprovado);
 CREATE INDEX idx_postagens_denunciado ON postagens(denunciado);
 
--- Comentários
 CREATE INDEX idx_comentarios_postagem ON comentarios(postagem_id);
 CREATE INDEX idx_comentarios_usuario ON comentarios(usuario_id);
 CREATE INDEX idx_comentarios_data ON comentarios(criado_em DESC);
 
--- Denúncias
 CREATE INDEX idx_denuncias_tipo ON denuncias(tipo_conteudo, conteudo_id);
 CREATE INDEX idx_denuncias_resolvido ON denuncias(resolvido);
 
--- Sessões
 CREATE INDEX idx_sessoes_usuario ON sessoes(usuario_id);
 CREATE INDEX idx_sessoes_token ON sessoes(token);
 CREATE INDEX idx_sessoes_expira ON sessoes(expira_em);
 
 -- ============================================
--- TRIGGERS para atualizar updated_at
+-- TRIGGERS
 -- ============================================
 
 CREATE OR REPLACE FUNCTION atualizar_timestamp()
@@ -229,13 +219,10 @@ CREATE TRIGGER trigger_comentarios_timestamp
     FOR EACH ROW
     EXECUTE FUNCTION atualizar_timestamp();
 
-
-
 -- ============================================
 -- FUNÇÕES UTILITÁRIAS
 -- ============================================
 
--- Função para limpar sessões expiradas
 CREATE OR REPLACE FUNCTION limpar_sessoes_expiradas()
 RETURNS void AS $$
 BEGIN
@@ -243,7 +230,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Função para incrementar visualizações
 CREATE OR REPLACE FUNCTION incrementar_visualizacao(postagem_uuid UUID)
 RETURNS void AS $$
 BEGIN
@@ -253,17 +239,235 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Função para verificar se usuário é admin
+CREATE OR REPLACE FUNCTION eh_admin(usuario_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM administradores WHERE usuario_id = usuario_uuid
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Função para obter ID do usuário autenticado
+CREATE OR REPLACE FUNCTION auth_user_id()
+RETURNS UUID AS $$
+BEGIN
+    RETURN NULLIF(current_setting('request.jwt.claims', true)::json->>'user_id', '')::UUID;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
 -- ============================================
--- DADOS INICIAIS (Opcional)
+-- ROW LEVEL SECURITY (RLS)
 -- ============================================
 
--- Criar primeiro admin (ajustar dados conforme necessário)
--- NOTA: A senha deve ser hashada pela aplicação antes de inserir
--- INSERT INTO usuarios (tipo_usuario, nome_usuario, email, senha_hash, nome_real, bp, email_verificado)
--- VALUES ('estudante', 'admin', 'admin@ifsp.edu.br', '$hashed_password', 'Administrador', 'ADMIN001', TRUE);
+-- Habilitar RLS em todas as tabelas
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE postagens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comentarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE denuncias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE administradores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE logs_admin ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessoes ENABLE ROW LEVEL SECURITY;
 
--- INSERT INTO administradores (usuario_id, nivel_permissao)
--- VALUES ((SELECT id FROM usuarios WHERE nome_usuario = 'admin'), 'super_admin');
+-- ============================================
+-- POLÍTICAS RLS: USUARIOS
+-- ============================================
+
+-- Todos podem ver perfis públicos (exceto banidos)
+CREATE POLICY "Perfis públicos visíveis"
+ON usuarios FOR SELECT
+USING (banido = FALSE);
+
+-- Usuários podem atualizar seus próprios dados
+CREATE POLICY "Usuários editam próprio perfil"
+ON usuarios FOR UPDATE
+USING (id = auth_user_id())
+WITH CHECK (id = auth_user_id());
+
+-- Apenas admins podem banir usuários
+CREATE POLICY "Admins gerenciam usuários"
+ON usuarios FOR ALL
+USING (eh_admin(auth_user_id()));
+
+-- Registro de novos usuários (público)
+CREATE POLICY "Registro público"
+ON usuarios FOR INSERT
+WITH CHECK (true);
+
+-- ============================================
+-- POLÍTICAS RLS: POSTAGENS
+-- ============================================
+
+-- Todos podem ver postagens aprovadas e não deletadas
+CREATE POLICY "Postagens públicas visíveis"
+ON postagens FOR SELECT
+USING (
+    aprovado = TRUE 
+    AND deletado_em IS NULL
+);
+
+-- Apenas estudantes podem criar postagens
+CREATE POLICY "Estudantes criam postagens"
+ON postagens FOR INSERT
+WITH CHECK (
+    usuario_id = auth_user_id() 
+    AND EXISTS (
+        SELECT 1 FROM usuarios 
+        WHERE id = auth_user_id() 
+        AND tipo_usuario = 'estudante'
+        AND banido = FALSE
+    )
+);
+
+-- Usuários podem editar/deletar suas próprias postagens
+CREATE POLICY "Usuários editam próprias postagens"
+ON postagens FOR UPDATE
+USING (usuario_id = auth_user_id())
+WITH CHECK (usuario_id = auth_user_id());
+
+CREATE POLICY "Usuários deletam próprias postagens"
+ON postagens FOR DELETE
+USING (usuario_id = auth_user_id());
+
+-- Admins podem moderar todas as postagens
+CREATE POLICY "Admins moderam postagens"
+ON postagens FOR ALL
+USING (eh_admin(auth_user_id()));
+
+-- ============================================
+-- POLÍTICAS RLS: COMENTARIOS
+-- ============================================
+
+-- Todos podem ver comentários aprovados
+CREATE POLICY "Comentários públicos visíveis"
+ON comentarios FOR SELECT
+USING (
+    aprovado = TRUE 
+    AND deletado_em IS NULL
+);
+
+-- Usuários autenticados (estudantes e visitantes) podem comentar
+CREATE POLICY "Usuários comentam"
+ON comentarios FOR INSERT
+WITH CHECK (
+    usuario_id = auth_user_id()
+    AND EXISTS (
+        SELECT 1 FROM usuarios 
+        WHERE id = auth_user_id() 
+        AND banido = FALSE
+    )
+);
+
+-- Usuários editam/deletam próprios comentários
+CREATE POLICY "Usuários editam próprios comentários"
+ON comentarios FOR UPDATE
+USING (usuario_id = auth_user_id())
+WITH CHECK (usuario_id = auth_user_id());
+
+CREATE POLICY "Usuários deletam próprios comentários"
+ON comentarios FOR DELETE
+USING (usuario_id = auth_user_id());
+
+-- Admins moderam comentários
+CREATE POLICY "Admins moderam comentários"
+ON comentarios FOR ALL
+USING (eh_admin(auth_user_id()));
+
+-- ============================================
+-- POLÍTICAS RLS: DENUNCIAS
+-- ============================================
+
+-- Usuários podem criar denúncias
+CREATE POLICY "Usuários criam denúncias"
+ON denuncias FOR INSERT
+WITH CHECK (
+    denunciante_id = auth_user_id()
+    AND EXISTS (
+        SELECT 1 FROM usuarios 
+        WHERE id = auth_user_id() 
+        AND banido = FALSE
+    )
+);
+
+-- Usuários veem suas próprias denúncias
+CREATE POLICY "Usuários veem próprias denúncias"
+ON denuncias FOR SELECT
+USING (denunciante_id = auth_user_id());
+
+-- Admins veem e gerenciam todas as denúncias
+CREATE POLICY "Admins gerenciam denúncias"
+ON denuncias FOR ALL
+USING (eh_admin(auth_user_id()));
+
+-- ============================================
+-- POLÍTICAS RLS: ADMINISTRADORES
+-- ============================================
+
+-- Apenas admins podem ver lista de administradores
+CREATE POLICY "Admins veem administradores"
+ON administradores FOR SELECT
+USING (eh_admin(auth_user_id()));
+
+-- Apenas super_admins podem criar/remover admins
+CREATE POLICY "Super admins gerenciam admins"
+ON administradores FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM administradores 
+        WHERE usuario_id = auth_user_id() 
+        AND nivel_permissao = 'super_admin'
+    )
+);
+
+-- ============================================
+-- POLÍTICAS RLS: LOGS_ADMIN
+-- ============================================
+
+-- Apenas admins podem ver logs
+CREATE POLICY "Admins veem logs"
+ON logs_admin FOR SELECT
+USING (eh_admin(auth_user_id()));
+
+-- Logs são criados automaticamente (sem INSERT direto)
+CREATE POLICY "Sistema cria logs"
+ON logs_admin FOR INSERT
+WITH CHECK (eh_admin(auth_user_id()));
+
+-- ============================================
+-- POLÍTICAS RLS: SESSOES
+-- ============================================
+
+-- Usuários veem apenas suas próprias sessões
+CREATE POLICY "Usuários veem próprias sessões"
+ON sessoes FOR SELECT
+USING (usuario_id = auth_user_id());
+
+-- Usuários gerenciam apenas suas próprias sessões
+CREATE POLICY "Usuários gerenciam próprias sessões"
+ON sessoes FOR ALL
+USING (usuario_id = auth_user_id())
+WITH CHECK (usuario_id = auth_user_id());
+
+-- Admins podem ver todas as sessões (para segurança)
+CREATE POLICY "Admins veem todas sessões"
+ON sessoes FOR SELECT
+USING (eh_admin(auth_user_id()));
+
+-- ============================================
+-- GRANTS (Permissões)
+-- ============================================
+
+-- Garantir que usuários autenticados possam acessar as tabelas
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+
+-- Usuários anônimos (não logados) podem apenas ler postagens e comentários
+GRANT SELECT ON postagens TO anon;
+GRANT SELECT ON comentarios TO anon;
+GRANT SELECT ON usuarios TO anon;
 
 -- ============================================
 -- FIM DO SCRIPT
