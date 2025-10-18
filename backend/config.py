@@ -33,13 +33,16 @@ class Config:
     JWT_ALGORITHM = os.getenv('JWT_ALGORITHM', 'HS256')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=JWT_EXPIRATION_HOURS)
     
-    # ===== EMAIL =====
-    SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.gmail.com')
-    SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+    # ===== EMAIL (SUPABASE SMTP) =====
+    USE_SUPABASE_SMTP = os.getenv('USE_SUPABASE_SMTP', 'True').lower() == 'true'
+    
+    # SMTP Personalizado (apenas se não usar Supabase)
+    SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.resend.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', 465))
     SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'True').lower() == 'true'
-    SMTP_USER = os.getenv('SMTP_USER')
-    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
-    EMAIL_FROM = os.getenv('EMAIL_FROM', f'Mural IFSP <{SMTP_USER}>')
+    SMTP_USER = os.getenv('SMTP_USER', '')
+    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+    EMAIL_FROM = os.getenv('EMAIL_FROM', f'Mural IFSP <noreply@ifsp.edu.br>')
     
     # ===== UPLOAD =====
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -62,9 +65,11 @@ class Config:
     ALLOWED_DOC_FORMATS = set(os.getenv('ALLOWED_DOC_FORMATS', 'pdf').split(','))
     
     # ===== TRANSCRIÇÃO =====
-    TRANSCRIPTION_SERVICE = os.getenv('TRANSCRIPTION_SERVICE', 'whisper')
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-    ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY')
+    TRANSCRIPTION_SERVICE = os.getenv('TRANSCRIPTION_SERVICE', 'whisper_local')
+    WHISPER_MODEL = os.getenv('WHISPER_MODEL', 'base')  # tiny, base, small, medium, large
+    
+    # Alternativa: Deepgram
+    DEEPGRAM_API_KEY = os.getenv('DEEPGRAM_API_KEY')
     
     # ===== SEGURANÇA =====
     RATE_LIMIT_POSTS_PER_HOUR = int(os.getenv('RATE_LIMIT_POSTS_PER_HOUR', 10))
