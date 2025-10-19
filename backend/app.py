@@ -104,10 +104,14 @@ def register_blueprints(app):
     except ImportError as e:
         app.logger.warning(f'Blueprint auth não disponível: {e}')
     
-    # Outros blueprints serão adicionados conforme forem criados
-    # from routes.postagens import postagens_bp
-    # app.register_blueprint(postagens_bp, url_prefix='/api/postagens')
+    try:
+        from routes.postagens import postagens_bp
+        app.register_blueprint(postagens_bp, url_prefix='/api/postagens')
+        app.logger.info('Blueprint postagens registrado')
+    except ImportError as e:
+        app.logger.warning(f'Blueprint postagens não disponível: {e}')
     
+    # Outros blueprints serão adicionados conforme forem criados
     # from routes.comentarios import comentarios_bp
     # app.register_blueprint(comentarios_bp, url_prefix='/api/comentarios')
     
