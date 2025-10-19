@@ -157,9 +157,11 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
     
-    # Em produção, exigir chaves fortes
-    if Config.SECRET_KEY == 'dev-secret-key-change-in-production':
-        raise ValueError("Configure uma SECRET_KEY forte em produção!")
+    def __init__(self):
+        super().__init__()
+        # Em produção, exigir chaves fortes
+        if self.SECRET_KEY == 'dev-secret-key-change-in-production':
+            raise ValueError("Configure uma SECRET_KEY forte em produção!")
 
 
 class TestingConfig(Config):
