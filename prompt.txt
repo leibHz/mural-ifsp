@@ -34,4 +34,5 @@ sei que é muita coisa pra vc fazer tudo de uma vez, então faça um plano de im
 
 lembre de separar cada coisa em VARIOS ARQUIVOS pra ficar mais ORGANIZADO e me fala o caminho de cada arquivo
 
+parte do codigo ja esta feito, cvomo pode ver, faça uma revisão buscando por bugs e dps vamos implementar oq falta
 pode fazer isso por favor claude?
