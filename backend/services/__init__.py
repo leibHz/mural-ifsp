@@ -7,11 +7,13 @@ from .email_service import EmailService
 from .media_service import MediaService
 from .thumbnail_service import ThumbnailService
 from .transcription_service import TranscriptionService
+from .comentario_service import ComentarioService
 
 __all__ = [
     'AuthService',
     'EmailService', 
     'MediaService',
     'ThumbnailService',
-    'TranscriptionService'
+    'TranscriptionService',
+    'ComentarioService'
 ]

@@ -111,10 +111,14 @@ def register_blueprints(app):
     except ImportError as e:
         app.logger.warning(f'Blueprint postagens não disponível: {e}')
     
-    # Outros blueprints serão adicionados conforme forem criados
-    # from routes.comentarios import comentarios_bp
-    # app.register_blueprint(comentarios_bp, url_prefix='/api/comentarios')
+    try:
+        from routes.comentarios import comentarios_bp
+        app.register_blueprint(comentarios_bp, url_prefix='/api/comentarios')
+        app.logger.info('Blueprint comentarios registrado')
+    except ImportError as e:
+        app.logger.warning(f'Blueprint comentarios não disponível: {e}')
     
+    # Outros blueprints serão adicionados conforme forem criados
     # from routes.usuarios import usuarios_bp
     # app.register_blueprint(usuarios_bp, url_prefix='/api/usuarios')
     
@@ -179,7 +183,6 @@ def register_error_handlers(app):
             'erro': 'Erro interno',
             'mensagem': 'Ocorreu um erro inesperado'
         }), 500
-
 
 # Executar aplicação
 if __name__ == '__main__':

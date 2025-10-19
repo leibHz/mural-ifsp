@@ -473,12 +473,18 @@ async function enviarDenuncia(postagemId) {
 
 // ===== COMENTÁRIOS =====
 
-function abrirComentarios(id) {
-    window.muralIFSP.showToast('Abrindo comentários...', 'info');
-    // Implementação será feita posteriormente
+async function abrirComentarios(id) {
+    // Usar função do sistema de comentários
+    if (window.comentariosIFSP) {
+        await window.comentariosIFSP.abrirComentarios(id);
+    } else {
+        window.muralIFSP.showToast('Sistema de comentários não carregado', 'error');
+    }
 }
 
 function fecharModalVisualizacao() {
     const modal = document.getElementById('modalVisualizarPostagem');
-    modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
