@@ -1,0 +1,297 @@
+preciso de ajuda pra desenvolver um site, ele é um mural sobre a violencia escolar, uma espécie de twiter só que do IFSP, nele vai poder
+
+enviar um video, foto gif pdf audio texto e etc.. com uma descrição obrigatoria abaixo de cada um
+
+no caso de audio, o audio pode ser transcrito pra pessoas com problemas auditivos
+
+eles são mostrados no mural como miniatura e são expandidos pra um modal ao clicar, no caso de pdf e videos e gifs, els são mostrados como uma miniatura estatica (no caso do pdf só mostra a primeira pagina) , mas são mostrados completamente ao clicar, no caso dos videos e audio, o som obiviamente é reproduzido
+
+o formato de audio compativel é .mp3, .wav e .ogg
+
+o site usará python pro backend e sera feito com html, css, js e claro, python com flask
+o banco de dados será da supabase, ja tenho um schema pronto, no qual te enviei o arquivo .sql
+
+use variaveis globais para melhhor segurança
+
+o site deve ser de cor predominante verde com um minimo de vermelho num tema escuro, com a logo do ifsp de bragança paulista no site, eu enviei a imagem da logo pra vc anaçlisar tambem
+
+ter um painel adiminstrativo pra gerenciar os projetos e apagar aqueles que forem inapropriados, banir usuarios, etc...
+
+so podera publicar quem for do ifsp, pra isso, sera nessesario uma conta que use o BP (prontuario), e uma senha, apartir disso ser a pedido pra criar um nome de usuario, dai tera o perfil com o nome real e o nome de usuario e o BP, ele tambem pedirá pra adicionar uma foto de perfil
+
+pessoas que não são do if podem ter uma conta difernete de quem é do if, ao inves do bp ele pede apenas a senha, nome de usuario e email, será enviado então um codigo de confirmação de 4 digitos e a conta so sera criada apos digitar esse codigo e se ele estiver correto
+
+pessoas com essa "conta diferente" podem apenas comentar nos projetos, essa conta diferente é chamada de visitante
+
+pessoas sem conta podem apenas visualizar os projetos
+ 
+colocar bastnate efeitos e animaçoes pra melhor fluidez do site, como efeito de pagina unica, hover, overlay, glassmorphism, botões animados, flutuante, etc...
+
+sei que é bastnate coisa, mais pode fazer isso pra mim por favor gemini?
+no caso do banco de dados, faça um script pra gerar ele
+sei que é muita coisa pra vc fazer tudo de uma vez, então faça um plano de implementação separados em módulos, isso vai facilitar as coisas
+
+lembre de separar cada coisa em VARIOS ARQUIVOS pra ficar mais ORGANIZADO e me fala o caminho de cada arquivo
+
+o schema do banco de dados caso precise
+
+-- ============================================
+-- SCRIPT DE CRIAÇÃO DO BANCO DE DADOS
+-- Mural IFSP - Sistema de Denúncia Escolar
+-- ============================================
+
+-- Extensões necessárias
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ============================================
+-- TABELA: usuarios
+-- ============================================
+CREATE TABLE usuarios (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tipo_usuario VARCHAR(20) NOT NULL CHECK (tipo_usuario IN ('estudante', 'visitante')),
+    
+    -- Dados comuns
+    nome_usuario VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
+    foto_perfil_url TEXT,
+    
+    -- Dados específicos de estudantes
+    nome_real VARCHAR(255),
+    bp VARCHAR(20) UNIQUE,
+    
+    -- Controle
+    email_verificado BOOLEAN DEFAULT FALSE,
+    codigo_verificacao VARCHAR(4),
+    codigo_expiracao TIMESTAMP,
+    banido BOOLEAN DEFAULT FALSE,
+    motivo_ban TEXT,
+    data_ban TIMESTAMP,
+    
+    -- Metadados
+    criado_em TIMESTAMP DEFAULT NOW(),
+    atualizado_em TIMESTAMP DEFAULT NOW(),
+    ultimo_acesso TIMESTAMP,
+    
+    -- Constraints
+    CONSTRAINT check_estudante_bp CHECK (
+        (tipo_usuario = 'estudante' AND bp IS NOT NULL AND nome_real IS NOT NULL) OR
+        (tipo_usuario = 'visitante' AND bp IS NULL)
+    )
+);
+
+-- ============================================
+-- TABELA: postagens
+-- ============================================
+CREATE TABLE postagens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    
+    -- Conteúdo
+    descricao TEXT NOT NULL,
+    tipo_midia VARCHAR(20) NOT NULL CHECK (tipo_midia IN ('imagem', 'video', 'gif', 'pdf', 'audio', 'texto')),
+    url_midia TEXT,
+    url_miniatura TEXT,
+    transcricao_audio TEXT,
+    
+    -- Metadados da mídia
+    tamanho_arquivo BIGINT,
+    duracao_midia INTEGER,
+    formato_arquivo VARCHAR(10),
+    
+    -- Moderação
+    aprovado BOOLEAN DEFAULT TRUE,
+    denunciado BOOLEAN DEFAULT FALSE,
+    numero_denuncias INTEGER DEFAULT 0,
+    
+    -- Estatísticas
+    visualizacoes INTEGER DEFAULT 0,
+    
+    -- Timestamps
+    criado_em TIMESTAMP DEFAULT NOW(),
+    atualizado_em TIMESTAMP DEFAULT NOW(),
+    deletado_em TIMESTAMP
+);
+
+-- ============================================
+-- TABELA: comentarios
+-- ============================================
+CREATE TABLE comentarios (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    postagem_id UUID NOT NULL REFERENCES postagens(id) ON DELETE CASCADE,
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    
+    -- Conteúdo
+    texto TEXT NOT NULL,
+    
+    -- Moderação
+    aprovado BOOLEAN DEFAULT TRUE,
+    denunciado BOOLEAN DEFAULT FALSE,
+    
+    -- Timestamps
+    criado_em TIMESTAMP DEFAULT NOW(),
+    atualizado_em TIMESTAMP DEFAULT NOW(),
+    deletado_em TIMESTAMP
+);
+
+-- ============================================
+-- TABELA: denuncias
+-- ============================================
+CREATE TABLE denuncias (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    denunciante_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    
+    -- Tipo de denúncia
+    tipo_conteudo VARCHAR(20) NOT NULL CHECK (tipo_conteudo IN ('postagem', 'comentario', 'usuario')),
+    conteudo_id UUID NOT NULL,
+    
+    -- Detalhes
+    motivo VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    
+    -- Status
+    resolvido BOOLEAN DEFAULT FALSE,
+    admin_responsavel_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    acao_tomada TEXT,
+    
+    -- Timestamps
+    criado_em TIMESTAMP DEFAULT NOW(),
+    resolvido_em TIMESTAMP
+);
+
+-- ============================================
+-- TABELA: administradores
+-- ============================================
+CREATE TABLE administradores (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    usuario_id UUID UNIQUE NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    nivel_permissao VARCHAR(20) NOT NULL CHECK (nivel_permissao IN ('super_admin', 'moderador')),
+    
+    -- Timestamps
+    criado_em TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- TABELA: logs_admin
+-- ============================================
+CREATE TABLE logs_admin (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    
+    -- Ação
+    tipo_acao VARCHAR(50) NOT NULL,
+    descricao TEXT NOT NULL,
+    alvo_id UUID,
+    dados_anteriores JSONB,
+    
+    -- Timestamp
+    criado_em TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- TABELA: sessoes
+-- ============================================
+CREATE TABLE sessoes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    expira_em TIMESTAMP NOT NULL,
+    criado_em TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- ÍNDICES
+-- ============================================
+
+CREATE INDEX idx_usuarios_tipo ON usuarios(tipo_usuario);
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_usuarios_bp ON usuarios(bp);
+CREATE INDEX idx_usuarios_banido ON usuarios(banido);
+
+CREATE INDEX idx_postagens_usuario ON postagens(usuario_id);
+CREATE INDEX idx_postagens_tipo ON postagens(tipo_midia);
+CREATE INDEX idx_postagens_data ON postagens(criado_em DESC);
+CREATE INDEX idx_postagens_aprovado ON postagens(aprovado);
+CREATE INDEX idx_postagens_denunciado ON postagens(denunciado);
+
+CREATE INDEX idx_comentarios_postagem ON comentarios(postagem_id);
+CREATE INDEX idx_comentarios_usuario ON comentarios(usuario_id);
+CREATE INDEX idx_comentarios_data ON comentarios(criado_em DESC);
+
+CREATE INDEX idx_denuncias_tipo ON denuncias(tipo_conteudo, conteudo_id);
+CREATE INDEX idx_denuncias_resolvido ON denuncias(resolvido);
+
+CREATE INDEX idx_sessoes_usuario ON sessoes(usuario_id);
+CREATE INDEX idx_sessoes_token ON sessoes(token);
+CREATE INDEX idx_sessoes_expira ON sessoes(expira_em);
+
+-- ============================================
+-- TRIGGERS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION atualizar_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.atualizado_em = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_usuarios_timestamp
+    BEFORE UPDATE ON usuarios
+    FOR EACH ROW
+    EXECUTE FUNCTION atualizar_timestamp();
+
+CREATE TRIGGER trigger_postagens_timestamp
+    BEFORE UPDATE ON postagens
+    FOR EACH ROW
+    EXECUTE FUNCTION atualizar_timestamp();
+
+CREATE TRIGGER trigger_comentarios_timestamp
+    BEFORE UPDATE ON comentarios
+    FOR EACH ROW
+    EXECUTE FUNCTION atualizar_timestamp();
+
+-- ============================================
+-- FUNÇÕES UTILITÁRIAS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION limpar_sessoes_expiradas()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM sessoes WHERE expira_em < NOW();
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION incrementar_visualizacao(postagem_uuid UUID)
+RETURNS void AS $$
+BEGIN
+    UPDATE postagens 
+    SET visualizacoes = visualizacoes + 1 
+    WHERE id = postagem_uuid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para verificar se usuário é admin
+CREATE OR REPLACE FUNCTION eh_admin(usuario_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM administradores WHERE usuario_id = usuario_uuid
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Função para obter ID do usuário autenticado
+CREATE OR REPLACE FUNCTION auth_user_id()
+RETURNS UUID AS $$
+BEGIN
+    RETURN NULLIF(current_setting('request.jwt.claims', true)::json->>'user_id', '')::UUID;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+
+pode fazer isso por favor claude, lembre-se de caso de serviço externo, sempre usar opçoes gratis, como na trancrição de audio por exemplo?
